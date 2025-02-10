@@ -182,7 +182,7 @@ class _HomeBodyState extends State<HomeBody> {
                               style: TextStyle(color: RrrColors.rrr_home_icon, fontWeight: FontWeight.bold, fontSize: 18,),
                             ),
                             TextSpan(
-                              text: "\n\nVeuillez cliquer sur le lien ci dessous pour découvrir toutes les règles du règle.\n",
+                              text: "\n\nVeuillez cliquer sur le lien ci dessous pour découvrir toutes les règles du jeu.\n",
                               style: TextStyle(fontWeight: FontWeight.normal, fontSize: 16),
                             ),
                             TextSpan(
