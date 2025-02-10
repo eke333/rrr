@@ -37,7 +37,7 @@ class LesTuiles {
     Tile(type: TileType.Neutral, name: "Traître", icon: Icons.arrow_back, rotation: 3 * pi / 2),
     Tile(type: TileType.Neutral, name: "Garde", icon: Icons.security, rotation: 3 * pi / 2),
     Tile(type: TileType.Neutral, name: "Tour", icon: Icons.business, rotation: 3 * pi / 2),
-    Tile(type: TileType.Neutral, name: "Bibliothé-\ncaire", icon: Icons.book, rotation: 3 * pi / 2),
+    Tile(type: TileType.Neutral, name: "Bibliothécaire", icon: Icons.book, rotation: 3 * pi / 2),
     Tile(type: TileType.Neutral, name: "Alchimiste", icon: Icons.science, rotation: 3 * pi / 2), // Remplacement ici
     Tile(type: TileType.Neutral, name: "Prophète", icon: Icons.lightbulb, rotation: 3 * pi / 2),
     Tile(type: TileType.Neutral, name: "Sage", icon: Icons.account_circle, rotation: 3 * pi / 2),
