@@ -54,8 +54,8 @@ class _PlateauBodyState extends State<PlateauBody> {
           // Positionner l'animation en fonction du joueur gagnant
             currentPlayer == TileType.Religion
                 ? Container(
-              height: 150,
-              width: 150,
+              height: 120,
+              width: 120,
               child: Lottie.asset('assets/lotties/winner.json'), // Chemin vers l'animation Lottie
             )
                 : SizedBox.shrink(),
@@ -203,9 +203,9 @@ class _PlateauBodyState extends State<PlateauBody> {
 
   Widget buildTile(Tile tile, {bool isOnBoard = false, bool isDragging = false}) {
     return Container(
-      margin: EdgeInsets.all(4),
-      width: isDragging ? 70 : 60,
-      height: isDragging ? 70 : 60,
+      margin: EdgeInsets.all(2),
+      width: isDragging ? 65 : 55,
+      height: isDragging ? 65 : 55,
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(
@@ -216,8 +216,8 @@ class _PlateauBodyState extends State<PlateauBody> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(tile.icon, size: 24, color: _getTileColor(tile.type)),
-          SizedBox(height: 4),
+          Icon(tile.icon, size: 18, color: _getTileColor(tile.type)),
+          SizedBox(height: 2),
           Text(tile.name, textAlign: TextAlign.center, style: TextStyle(fontSize: 10)),
         ],
       ),
