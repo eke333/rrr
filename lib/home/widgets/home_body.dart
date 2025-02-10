@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:rrr/constants/rrr_colors.dart';
 import 'package:rrr/plateau/screen_plateau.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../constants/constants.dart';
 import '../../widgets/rrr_action_button.dart';
 
 class HomeBody extends StatefulWidget {
@@ -14,28 +15,40 @@ class HomeBody extends StatefulWidget {
 }
 
 class _HomeBodyState extends State<HomeBody> {
-  final List<Map<String, String>> carouselItems = [
+
+  final List<Map<String, dynamic>> carouselItems = [
     {
       'image': 'assets/images/royaute.png',
       'text': 'ROYAUTE',
+      'widthFactor': 0.6, // 60% de la largeur de l'écran
+      'heightFactor': 0.15, // 30% de la hauteur de l'écran
     },
     {
       'image': 'assets/images/vs2.jpg',
       'text': 'vs',
+      'widthFactor': 0.3,
+      'heightFactor': 0.15,
     },
     {
       'image': 'assets/images/religion.jpg',
       'text': 'RELIGION',
+      'widthFactor': 0.62,
+      'heightFactor': 0.15,
     },
     {
       'image': 'assets/images/deux_points.jpg',
-      'text': ':',
+      'text': '',
+      'widthFactor': 0.1,
+      'heightFactor': 0.15,
     },
     {
       'image': 'assets/images/revolution.jpg',
       'text': 'REVOLUTION',
+      'widthFactor': 0.55,
+      'heightFactor': 0.15,
     },
   ];
+
 
   bool _isRulesVisible = false;
 
@@ -51,6 +64,7 @@ class _HomeBodyState extends State<HomeBody> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       body: GestureDetector(
         onTap: () {
@@ -62,11 +76,11 @@ class _HomeBodyState extends State<HomeBody> {
         },
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(Constants.screenWidth(context) * 0.05),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               children: <Widget>[
-                const SizedBox(height: 50),
+                SizedBox(height: Constants.screenHeight(context) * 0.02),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -74,7 +88,7 @@ class _HomeBodyState extends State<HomeBody> {
                       "assets/logos/jeu-de-plateau.png",
                       height: 70,
                     ),
-                    const SizedBox(width: 15),
+                    SizedBox(width: Constants.screenWidth(context) * 0.04),
                     Text(
                       "RvsR:R",
                       style: TextStyle(
@@ -85,26 +99,29 @@ class _HomeBodyState extends State<HomeBody> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 40),
+                SizedBox(height: Constants.screenHeight(context) * 0.03),
                 CarouselSlider(
                   options: CarouselOptions(
-                    height: 400,
+                    height: Constants.screenHeight(context)*0.28,
                     autoPlay: true,
                     autoPlayInterval: const Duration(seconds: 3),
                     enlargeCenterPage: true,
-                    viewportFraction: 0.8,
+                    // viewportFraction: 0.8,
                   ),
                   items: carouselItems.map((item) {
+                    double width = Constants.screenWidth(context) * item['widthFactor'];
+                    double height = Constants.screenHeight(context) * item['heightFactor'];
                     return Builder(
                       builder: (BuildContext context) {
                         return Column(
                           children: [
                             Image.asset(
                               item['image']!,
-                              height: 230,
-                              width: 250,
+                              height: height,
+                              width: width,
+                              fit: BoxFit.cover,
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: Constants.screenHeight(context) * 0.01),
                             Text(
                               item['text']!,
                               style: const TextStyle(
@@ -120,7 +137,7 @@ class _HomeBodyState extends State<HomeBody> {
                     );
                   }).toList(),
                 ),
-                //const SizedBox(height: 10),
+                //const SizedBox(height: 0),
                 RrrActionButton(
                     buttonTitle: "Jouer",
                     onPressed: () {
@@ -129,7 +146,7 @@ class _HomeBodyState extends State<HomeBody> {
                         MaterialPageRoute(builder: (context) => const ScreenPlateau()),
                       );
                     }),
-                const SizedBox(height: 20),
+                SizedBox(height: Constants.screenHeight(context) * 0.02),
                 GestureDetector(
                   onTap: () {
                     setState(() {
@@ -139,7 +156,7 @@ class _HomeBodyState extends State<HomeBody> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     width: double.infinity,
-                    height: _isRulesVisible ? 150 : 50,
+                    height: _isRulesVisible ? Constants.screenHeight(context) * 0.25 : Constants.screenHeight(context)*0.055,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
@@ -154,7 +171,7 @@ class _HomeBodyState extends State<HomeBody> {
                     ),
                     child: _isRulesVisible
                         ? Padding(
-                      padding: const EdgeInsets.all(10.0),
+                      padding: EdgeInsets.all(Constants.screenWidth(context) * 0.02),
                       child: Text.rich(
                         TextSpan(
                           text: 'La partie débute avec la tuile neutre ',

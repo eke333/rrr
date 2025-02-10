@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rrr/constants/constants.dart';
 import 'package:rrr/constants/rrr_colors.dart';
 
 class RrrActionButton extends StatelessWidget {
@@ -11,7 +12,7 @@ class RrrActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: Constants.screenHeight(context)*0.057,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -24,7 +25,8 @@ class RrrActionButton extends StatelessWidget {
         child: Text(
           buttonTitle,
           style: const TextStyle(
-              fontSize: 20
+            fontSize: 20,
+            //fontWeight: FontWeight.bold
           ),
         ),
       ),
