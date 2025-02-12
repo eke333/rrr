@@ -54,9 +54,9 @@ class _HomeBodyState extends State<HomeBody> {
 
   // Fonction pour ouvrir l'URL
   void _launchURL() async {
-    const url = 'https://www.igiari.com/RRR_regles.pdf';
-    if (await canLaunch(url)) {
-      await launch(url);
+    final Uri url = Uri.parse('https://www.igiari.com/RRR_regles.pdf');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
       throw 'Could not launch $url';
     }
@@ -187,8 +187,12 @@ class _HomeBodyState extends State<HomeBody> {
                             ),
                             TextSpan(
                               text: 'cliquez ici',
-                              style: TextStyle(color: RrrColors.rrr_home_icon, decoration: TextDecoration.underline, fontWeight: FontWeight.bold), // Style du lien
-                              recognizer: TapGestureRecognizer()..onTap = _launchURL, // Action lors du tap
+                              style: TextStyle(
+                                color: RrrColors.rrr_home_icon,
+                                decoration: TextDecoration.underline,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              recognizer: TapGestureRecognizer()..onTap = _launchURL,
                             ),
                           ],
                         ),
