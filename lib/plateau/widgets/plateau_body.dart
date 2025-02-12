@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:lottie/lottie.dart';
 import 'package:rrr/constants/rrr_colors.dart';
+import 'package:rrr/plateau/ressources/la_logique.dart';
 import 'dart:math';
 import 'package:rrr/plateau/ressources/les_tuiles.dart';
 import 'package:rrr/plateau/widgets/tuile.dart';
@@ -15,34 +17,18 @@ class PlateauBody extends StatefulWidget {
 }
 
 class _PlateauBodyState extends State<PlateauBody> {
-  List<List<Tile?>> board = List.generate(3, (_) => List.filled(3, null));
-  late List<Tile> selectedGrayTiles;
-  TileType currentPlayer = TileType.Royalty;
-  bool isGameOver = false;
-  List<Tile> availableBlueTiles = [];
-  List<Tile> availableRedTiles = [];
-  bool firstMoveDone = false;
-  bool isCitizenPlaced = false;
-  bool showWinnerAnimation = false;
+
+  late LaLogique gameLogic;
+
 
   @override
   void initState() {
     super.initState();
-    selectedGrayTiles = _selectRandomGrayTiles();
-    availableBlueTiles = List.from(LesTuiles().blueTiles);
-    availableRedTiles = List.from(LesTuiles().redTiles);
-    currentPlayer = Random().nextBool() ? TileType.Religion : TileType.Royalty;
-  }
-
-  List<Tile> _selectRandomGrayTiles() {
-    final random = Random();
-    List<Tile> allGrayTiles = List.from(LesTuiles().allGrayTiles);
-    Tile citizenTile = allGrayTiles.firstWhere((tile) => tile.name == "Citoyen");
-    allGrayTiles.remove(citizenTile);
-    allGrayTiles.shuffle(random);
-    List<Tile> randomGrayTiles = allGrayTiles.take(4).toList();
-    randomGrayTiles.add(citizenTile);
-    return randomGrayTiles;
+    gameLogic = LaLogique(onStateChange: () => setState(() {}));
+    gameLogic.selectedGrayTiles = gameLogic.selectRandomGrayTiles();
+    gameLogic.availableBlueTiles = List.from(LesTuiles().blueTiles);
+    gameLogic.availableRedTiles = List.from(LesTuiles().redTiles);
+    gameLogic.currentPlayer = Random().nextBool() ? TileType.Religion : TileType.Royalty;
   }
 
   @override
@@ -52,9 +38,9 @@ class _PlateauBodyState extends State<PlateauBody> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Affichage de l'animation Lottie si un joueur a gagné
-          if (showWinnerAnimation)
+          if (gameLogic.showWinnerAnimation)
           // Positionner l'animation en fonction du joueur gagnant
-            currentPlayer == TileType.Religion
+            gameLogic.currentPlayer == TileType.Religion
                 ? Container(
               height: Constants.screenWidth(context)*0.40,
               width: Constants.screenWidth(context)*0.40,
@@ -63,7 +49,7 @@ class _PlateauBodyState extends State<PlateauBody> {
                 : SizedBox.shrink(),
 
           // Affichage des tuiles bleues pour Religion
-          if (currentPlayer == TileType.Religion)
+          if (gameLogic.currentPlayer == TileType.Religion)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -72,7 +58,7 @@ class _PlateauBodyState extends State<PlateauBody> {
                 Icon(Icons.church, size: Constants.screenWidth(context)*0.06, color: RrrColors.rrr_home_icon),
               ],
             ),
-          buildScrollableRow(availableBlueTiles),
+          buildScrollableRow(gameLogic.availableBlueTiles),
 
           SizedBox(height: Constants.screenHeight(context)*0.005),
 
@@ -81,28 +67,28 @@ class _PlateauBodyState extends State<PlateauBody> {
             children: [
               buildBoard(),
               SizedBox(height: Constants.screenWidth(context)*0.01),
-              buildScrollableColumn(selectedGrayTiles),
+              buildScrollableColumn(gameLogic.selectedGrayTiles),
             ],
           ),
 
           SizedBox(height: Constants.screenHeight(context)*0.005),
-          buildScrollableRow(availableRedTiles),
+          buildScrollableRow(gameLogic.availableRedTiles),
           SizedBox(height: Constants.screenHeight(context)*0.005),
 
           // Affichage des tuiles rouges pour Royaume
-          if (currentPlayer == TileType.Royalty)
+          if (gameLogic.currentPlayer == TileType.Royalty)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text("Royaume joue", style: TextStyle(color: Colors.red, fontSize: Constants.screenWidth(context)*0.045, fontWeight: FontWeight.bold)),
                 SizedBox(width: Constants.screenWidth(context)*0.02),
-                Icon(Icons.diamond, size: Constants.screenWidth(context)*0.06, color: Colors.red),
+                Icon(FontAwesomeIcons.crown, size: Constants.screenWidth(context)*0.05, color: Colors.red),
               ],
             ),
           // Affichage de l'animation Lottie si un joueur a gagné
-          if (showWinnerAnimation)
+          if (gameLogic.showWinnerAnimation)
           // Positionner l'animation en fonction du joueur gagnant
-            currentPlayer == TileType.Royalty
+            gameLogic.currentPlayer == TileType.Royalty
                 ? Container(
               height: Constants.screenWidth(context)*0.35,
               width: Constants.screenWidth(context)*0.35,
@@ -114,50 +100,22 @@ class _PlateauBodyState extends State<PlateauBody> {
     );
   }
 
-
-  void checkWinner() {
-    int royaltyCount = board.expand((row) => row).where((tile) => tile?.type == TileType.Royalty).length;
-    int religionCount = board.expand((row) => row).where((tile) => tile?.type == TileType.Religion).length;
-    isGameOver = true;
-    print(royaltyCount > religionCount ? "Royauté gagne !" : "Religion gagne !");
-    setState(() {
-      showWinnerAnimation = true;
-    });
-    Future.delayed(Duration(seconds: 12), () {
-      setState(() {
-        resetGame();
-        showWinnerAnimation = false;
-      });
-    });
-  }
-
-  void resetGame() {
-    board = List.generate(3, (_) => List.filled(3, null));
-    selectedGrayTiles = _selectRandomGrayTiles();
-    availableBlueTiles = List.from(LesTuiles().blueTiles);
-    availableRedTiles = List.from(LesTuiles().redTiles);
-    currentPlayer = Random().nextBool() ? TileType.Religion : TileType.Royalty;
-    firstMoveDone = false;
-    isCitizenPlaced = false;
-    isGameOver = false;
-  }
-
   Widget buildBoard() {
     return Column(
       children: List.generate(3, (row) {
         return Row(
           children: List.generate(3, (col) {
             return DragTarget<Tile>(
-              onAccept: (tile) => onTileDropped(row, col, tile),
+              onAccept: (tile) => gameLogic.onTileDropped(row, col, tile),
               builder: (context, candidateData, rejectedData) {
                 return Container(
                   width: Constants.screenWidth(context)*0.18,
                   height: Constants.screenWidth(context)*0.18,
                   margin: EdgeInsets.all(4.0),
-                  color: board[row][col] != null ? Colors.white : Colors.grey[300],
+                  color: gameLogic.board[row][col] != null ? Colors.white : Colors.grey[300],
                   child: Center(
-                    child: board[row][col] != null
-                        ? buildTile(board[row][col]!, isOnBoard: true)
+                    child: gameLogic.board[row][col] != null
+                        ? buildTile(gameLogic.board[row][col]!, isOnBoard: true)
                         : Container(),
                   ),
                 );
@@ -218,149 +176,11 @@ class _PlateauBodyState extends State<PlateauBody> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(tile.icon, size: Constants.screenWidth(context)*0.03, color: _getTileColor(tile.type)),
+          Icon(tile.icon, size: Constants.screenWidth(context)*0.03, color: gameLogic.getTileColor(tile.type)),
           SizedBox(height: Constants.screenHeight(context)*0.0025),
           Text(tile.name, textAlign: TextAlign.center, style: TextStyle(fontSize: Constants.screenWidth(context)*0.024, fontWeight: FontWeight.bold)),
         ],
       ),
     );
-  }
-
-  Color _getTileColor(TileType type) {
-    return {
-      TileType.Royalty: Colors.red,
-      TileType.Religion: RrrColors.rrr_home_icon,
-      TileType.Neutral: Colors.grey,
-    }[type]!;
-  }
-
-  void onTileDropped(int row, int col, Tile tile) {
-    // Vérification si le jeu est terminé ou si la case est déjà occupée
-    if (isGameOver || board[row][col] != null) return;
-
-    // Vérification si c'est le bon joueur qui joue et si la tuile est valide
-    if (!isValidMove(tile)) {
-      // Si ce n'est pas le tour du joueur actuel, la tuile retourne à sa position d'origine
-      return;
-    }
-
-    if (!firstMoveDone && tile.name != "Citoyen") return;
-
-    setState(() {
-      board[row][col] = tile;
-      removeTileFromAvailableList(tile);
-      applyTileEffect(row, col, tile);
-      firstMoveDone = true;
-      if (isBoardFull()) {
-        checkWinner();
-      } else {
-        switchPlayer();
-      }
-    });
-  }
-
-  bool isValidMove(Tile tile) {
-    // Un joueur peut déplacer ses propres tuiles ou les tuiles neutres
-    if (currentPlayer == TileType.Royalty && tile.type != TileType.Royalty && tile.type != TileType.Neutral) {
-      return false;
-    } else if (currentPlayer == TileType.Religion && tile.type != TileType.Religion && tile.type != TileType.Neutral) {
-      return false;
-    }
-    return true;
-  }
-
-
-  void removeTileFromAvailableList(Tile tile) {
-    if (tile.type == TileType.Royalty) {
-      availableRedTiles.remove(tile);
-    } else if (tile.type == TileType.Religion) {
-      availableBlueTiles.remove(tile);
-    } else {
-      selectedGrayTiles.remove(tile);
-    }
-  }
-
-  void applyTileEffect(int row, int col, Tile tile) {
-    switch (tile.name) {
-      case "Pape":
-      case "Roi":
-        rotateTilesAround(row, col);
-        break;
-      case "Sorcière":
-      case "Assassin":
-        destroyAdjacentTile(row, col);
-        break;
-      case "Pirate":
-        destroyShieldedTile(row, col);
-        break;
-      case "Faucheuse":
-        if (isBoardFull()) isGameOver = true;
-        break;
-    }
-  }
-
-  bool isBoardFull() {
-    return board.every((row) => row.every((tile) => tile != null));
-  }
-
-  void switchPlayer() {
-    // If the first move is done, alternate players on each turn
-    currentPlayer = currentPlayer == TileType.Royalty ? TileType.Religion : TileType.Royalty;
-    // If "Citoyen" has been placed, disable further moves for that turn
-    if (isCitizenPlaced) {
-      firstMoveDone = true; // Lock the ability to play "Citoyen"
-    }
-  }
-
-  void rotateTilesAround(int row, int col) {
-    List<List<int>> directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    for (var dir in directions) {
-      int newRow = row + dir[0];
-      int newCol = col + dir[1];
-      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
-        Tile? tile = board[newRow][newCol];
-        if (tile != null) {
-          setState(() {
-            board[newRow][newCol] = Tile(
-              name: tile.name,
-              type: tile.type == TileType.Royalty ? TileType.Religion : TileType.Royalty,
-              icon: tile.icon,
-              rotation: pi,
-            );
-          });
-        }
-      }
-    }
-  }
-
-  void destroyAdjacentTile(int row, int col) {
-    List<List<int>> directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    for (var dir in directions) {
-      int newRow = row + dir[0];
-      int newCol = col + dir[1];
-      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
-        if (board[newRow][newCol] != null) {
-          setState(() {
-            board[newRow][newCol] = null;
-          });
-        }
-      }
-    }
-  }
-
-  void destroyShieldedTile(int row, int col) {
-    List<List<int>> directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    for (var dir in directions) {
-      int newRow = row + dir[0];
-      int newCol = col + dir[1];
-      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
-        Tile? tile = board[newRow][newCol];
-        if (tile != null && tile.name != "Tour") { // Tour est immunisée
-          setState(() {
-            board[newRow][newCol] = null;
-          });
-        }
-      }
-    }
   }
 }
