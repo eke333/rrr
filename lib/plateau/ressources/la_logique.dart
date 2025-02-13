@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../constants/rrr_colors.dart';
-import '../widgets/tuile.dart';
+import 'tile.dart';
 import 'les_tuiles.dart';
 
 class LaLogique {

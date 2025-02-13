@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:rrr/plateau/widgets/tuile.dart';
+import 'package:rrr/plateau/ressources/tile.dart';
 import '../../constants/constants.dart';
 import '../ressources/la_logique.dart';
 

@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../widgets/tuile.dart';
+import 'tile.dart';
 
 class LesTuiles {
   final List<Tile> blueTiles = [
