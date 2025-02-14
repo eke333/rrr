@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../constants/constants.dart';
 import '../ressources/tile.dart';
 import 'draggable_tile.dart';
 
@@ -13,14 +12,22 @@ class ScrollableRow extends StatefulWidget {
 }
 
 class _ScrollableRowState extends State<ScrollableRow> {
+  void removeTile(Tile tile) {
+    setState(() {
+      widget.tiles.remove(tile);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: Constants.screenHeight(context) * 0.1,
+      height: 100,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: widget.tiles.map((tile) => DraggableTile(tile: tile)).toList(),
+          children: widget.tiles
+              .map((tile) => DraggableTile(tile: tile, onTileDropped: removeTile))
+              .toList(),
         ),
       ),
     );

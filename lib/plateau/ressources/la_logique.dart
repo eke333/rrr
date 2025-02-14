@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../constants/constants.dart';
 import '../../constants/rrr_colors.dart';
 import 'tile.dart';
 import 'les_tuiles.dart';
@@ -17,7 +18,9 @@ class LaLogique {
 
   final VoidCallback onStateChange;
 
-  LaLogique({required this.onStateChange});
+  LaLogique({required this.onStateChange}) {
+    resetGame();
+  }
 
   List<Tile> selectRandomGrayTiles() {
     final random = Random();
@@ -35,10 +38,8 @@ class LaLogique {
     int religionCount = board.expand((row) => row).where((tile) => tile?.type == TileType.Religion).length;
     isGameOver = true;
     print(royaltyCount > religionCount ? "Royauté gagne !" : "Religion gagne !");
-
     showWinnerAnimation = true;
-    onStateChange(); // Notifier le widget parent
-
+    onStateChange();
     Future.delayed(Duration(seconds: 12), () {
       resetGame();
       showWinnerAnimation = false;
@@ -55,25 +56,16 @@ class LaLogique {
     firstMoveDone = false;
     isCitizenPlaced = false;
     isGameOver = false;
-    onStateChange(); // Notifier le widget parent
+    onStateChange();
   }
 
-  Color getTileColor(TileType type) {
-    return {
-      TileType.Royalty: Colors.red,
-      TileType.Religion: RrrColors.rrr_home_icon,
-      TileType.Neutral: Colors.grey,
-    }[type]!;
-  }
-
-  void onTileDropped(int row, int col, Tile tile) {
-    if (isGameOver || board[row][col] != null) return;
-    if (!isValidMove(tile)) return;
+  void onTileDropped(int row, int col, Tile tile, BuildContext context) {
+    if (isGameOver || board[row][col] != null || !isValidMove(tile)) return;
     if (!firstMoveDone && tile.name != "Citoyen") return;
 
     board[row][col] = tile;
     removeTileFromAvailableList(tile);
-    applyTileEffect(row, col, tile);
+    applyTileEffect(row, col, tile, context, currentPlayer != TileType.Royalty); // Passe context ici aussi
     firstMoveDone = true;
 
     if (isBoardFull()) {
@@ -81,17 +73,11 @@ class LaLogique {
     } else {
       switchPlayer();
     }
-
     onStateChange();
   }
 
   bool isValidMove(Tile tile) {
-    if (currentPlayer == TileType.Royalty && tile.type != TileType.Royalty && tile.type != TileType.Neutral) {
-      return false;
-    } else if (currentPlayer == TileType.Religion && tile.type != TileType.Religion && tile.type != TileType.Neutral) {
-      return false;
-    }
-    return true;
+    return tile.type == currentPlayer || tile.type == TileType.Neutral;
   }
 
   void removeTileFromAvailableList(Tile tile) {
@@ -104,14 +90,30 @@ class LaLogique {
     }
   }
 
-  void applyTileEffect(int row, int col, Tile tile) {
+  Color getTileColor(TileType type) {
+    return {
+      TileType.Royalty: Colors.red,
+      TileType.Religion: RrrColors.rrr_home_icon,
+      TileType.Neutral: Colors.grey,
+    }[type]!;
+  }
+
+  void applyTileEffect(int row, int col, Tile tile, BuildContext context, bool isPlayerOne) {
     switch (tile.name) {
-      case "Pape":
       case "Roi":
-        rotateTilesAround(row, col);
+      case "Hiérophante":
+        promptDestroyOneAdjacentTile(row, col, context, isPlayerOne); // Ajout du paramètre manquant
         break;
-      case "Sorcière":
+      case "Reine":
+      case "Cardinal":
+        rotateTilesInDirection(row, col);
+        break;
+      case "Princesse":
+      case "Saint":
+        promptRotationChoice(row, col, context);
+        break;
       case "Assassin":
+      case "Sorcière":
         destroyAdjacentTile(row, col);
         break;
       case "Pirate":
@@ -123,6 +125,8 @@ class LaLogique {
     }
   }
 
+
+
   bool isBoardFull() {
     return board.every((row) => row.every((tile) => tile != null));
   }
@@ -131,6 +135,72 @@ class LaLogique {
     currentPlayer = currentPlayer == TileType.Royalty ? TileType.Religion : TileType.Royalty;
     if (isCitizenPlaced) {
       firstMoveDone = true;
+    }
+    onStateChange();
+  }
+
+  void promptRotationChoice(int row, int col, BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: EdgeInsets.only(
+            top: currentPlayer == TileType.Religion ? MediaQuery.of(context).size.height * 0.75 : 0.0,
+            bottom: currentPlayer == TileType.Royalty ? MediaQuery.of(context).size.height * 0.65 : 0.0,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Choisissez le type de pivot", style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: MediaQuery.of(context).size.height * 0.005),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    rotateAdjacentTiles(row, col, orthogonal: true);
+                  },
+                  child: Text("Pivoter orthogonalement"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    rotateAdjacentTiles(row, col, orthogonal: false);
+                  },
+                  child: Text("Pivoter diagonalement"),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+  void rotateAdjacentTiles(int row, int col, {required bool orthogonal}) {
+    List<List<int>> directions = orthogonal
+        ? [
+      [-1, 0], [1, 0], [0, -1], [0, 1]
+    ]
+        : [
+      [-1, -1], [-1, 1], [1, -1], [1, 1]
+    ];
+
+    for (var dir in directions) {
+      int newRow = row + dir[0];
+      int newCol = col + dir[1];
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null) {
+        Tile tile = board[newRow][newCol]!;
+        board[newRow][newCol] = Tile(
+          name: tile.name,
+          type: tile.type == TileType.Royalty ? TileType.Religion : TileType.Royalty,
+          icon: tile.icon,
+          rotation: pi,
+        );
+      }
     }
     onStateChange();
   }
@@ -152,8 +222,118 @@ class LaLogique {
         }
       }
     }
-    onStateChange();
   }
+
+  void rotateTilesInDirection(int row, int col) {
+    List<List<int>> directions = [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1],         [0, 1],
+      [1, -1], [1, 0], [1, 1]
+    ];
+    for (var dir in directions) {
+      int newRow = row + dir[0];
+      int newCol = col + dir[1];
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
+        Tile? tile = board[newRow][newCol];
+        if (tile != null) {
+          board[newRow][newCol] = Tile(
+            name: tile.name,
+            type: tile.type == TileType.Royalty ? TileType.Religion : TileType.Royalty,
+            icon: tile.icon,
+            rotation: pi,
+          );
+        }
+      }
+    }
+  }
+
+  void promptDestroyOneAdjacentTile(int row, int col, BuildContext context, bool isPlayerOne) {
+    List<List<int>> directions = [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1],         [0, 1],
+      [1, -1], [1, 0], [1, 1]
+    ];
+
+    List<Point<int>> positions = [];
+    List<Tile> tiles = [];
+
+    for (var dir in directions) {
+      int newRow = row + dir[0];
+      int newCol = col + dir[1];
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null) {
+        positions.add(Point(newRow, newCol));
+        tiles.add(board[newRow][newCol]!);
+      }
+    }
+
+    if (positions.isNotEmpty) {
+      showDialog(
+        context: context,
+        barrierColor: Colors.transparent,
+        builder: (BuildContext context) {
+          return Align(
+            alignment: isPlayerOne ? Alignment.topCenter : Alignment.bottomCenter,
+            child: Material(
+              type: MaterialType.transparency,
+              child: Container(
+                margin: EdgeInsets.only(top: isPlayerOne ? Constants.screenWidth(context) * 0.165 : 0, bottom: isPlayerOne ? 0 : Constants.screenWidth(context) * 0.05),
+                padding: EdgeInsets.all(Constants.screenWidth(context) * 0.03),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text("Choisissez une tuile à détruire", style: TextStyle(fontWeight: FontWeight.bold)),
+                    SizedBox(height: Constants.screenHeight(context) * 0.008),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(tiles.length, (index) {
+                          return GestureDetector(
+                            onTap: () {
+                              board[positions[index].x][positions[index].y] = null;
+                              Navigator.of(context).pop();
+                              onStateChange();
+                            },
+                            child: Container(
+                              width: Constants.screenWidth(context) * 0.20,
+                              height: Constants.screenWidth(context) * 0.15,
+                              margin: EdgeInsets.symmetric(horizontal: Constants.screenWidth(context) * 0.165),
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: Colors.black, width: 2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(tiles[index].icon, size: Constants.screenWidth(context) * 0.05, color: getTileColor(tiles[index].type)),
+                                  SizedBox(height: Constants.screenHeight(context) * 0.005),
+                                  Text(tiles[index].name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: Constants.screenWidth(context) * 0.026)),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                    SizedBox(height: Constants.screenHeight(context) * 0.009),
+                    Text("Faites défiler pour voir toutes les tuiles", style: TextStyle(fontSize: Constants.screenWidth(context) * 0.026, fontStyle: FontStyle.italic)),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+  }
+
+
 
   void destroyAdjacentTile(int row, int col) {
     List<List<int>> directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
@@ -161,12 +341,9 @@ class LaLogique {
       int newRow = row + dir[0];
       int newCol = col + dir[1];
       if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
-        if (board[newRow][newCol] != null) {
-          board[newRow][newCol] = null;
-        }
+        board[newRow][newCol] = null;
       }
     }
-    onStateChange();
   }
 
   void destroyShieldedTile(int row, int col) {
@@ -181,6 +358,5 @@ class LaLogique {
         }
       }
     }
-    onStateChange();
   }
 }
