@@ -3,15 +3,17 @@ import 'package:flutter/material.dart';
 enum TileType { Royalty, Religion, Neutral }
 
 class Tile {
-  late final TileType type;
   final String name;
+  final TileType type;
   final IconData icon;
-  final double rotation; // Ajout du champ rotation
+  late final double rotation;
+  bool isImmune; // Ajout de l'immunité
 
   Tile({
-    required this.type,
     required this.name,
+    required this.type,
     required this.icon,
     required this.rotation,
+    this.isImmune = false, // Valeur par défaut : non immunisé
   });
 }

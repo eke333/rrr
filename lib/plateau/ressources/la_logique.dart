@@ -15,6 +15,7 @@ class LaLogique {
   List<Tile> availableRedTiles = [];
   bool firstMoveDone = false;
   bool isCitizenPlaced = false;
+  List<Tile> discardedTiles = [];
 
   final VoidCallback onStateChange;
 
@@ -102,7 +103,7 @@ class LaLogique {
     switch (tile.name) {
       case "Roi":
       case "Hiérophante":
-        promptDestroyOneAdjacentTile(row, col, context, isPlayerOne); // Ajout du paramètre manquant
+        promptDestroyOneAdjacentTile(row, col, context, isPlayerOne);
         break;
       case "Reine":
       case "Cardinal":
@@ -112,15 +113,71 @@ class LaLogique {
       case "Saint":
         promptRotationChoice(row, col, context);
         break;
+      case "Ministre":
+      case "Évêque":
+        promptSingleTileRotation(row, col, context);
+        break;
+      case "Général":
+      case "Paladin":
+        promptDestroyOrthogonalTile(row, col, context);
+        break;
+      case "Sorcier":
+      case "Moine":
+        promptDestroyDiagonalTile(row, col, context);
+        break;
+      case "Château":
+      case "Temple":
+        return;
+      case "Aventurier":
+        moveNeutralTileToPlayerZone();
+        break;
       case "Assassin":
-      case "Sorcière":
-        destroyAdjacentTile(row, col);
+        banishOpponentTile(context);
+        break;
+      case "Fée":
+        moveRoyaltyTile(context);
+        break;
+      case "Voyante":
+        rotateThreeAdjacentTiles(row, col);
+        break;
+      case "Chaman":
+        //cancelInstantEffects(row, col);
+        break;
+      case "Samuraï":
+        promptBanishOrthogonalTile(row, col, context);
+        break;
+      case "Barde":
+        reactivateInstantEffect(row, col);
+        break;
+      case "Sage":
+        grantShieldToAdjacent(row, col);
+        break;
+      case "Ermite":
+        retrieveDiscardedTile();
         break;
       case "Pirate":
-        destroyShieldedTile(row, col);
+        destroyShieldedTile(row, col, context);
         break;
       case "Faucheuse":
-        if (isBoardFull()) isGameOver = true;
+        checkFaucheuseEndGame();
+        break;
+      case "Dragon":
+        rotateAdjacentTiles(row, col, orthogonal: true);
+        break;
+      case "Sorcière":
+        //cancelDiagonalInstantEffects(row, col);
+        break;
+      case "Ninja":
+        banishDiagonalTile(row, col, context);
+        break;
+      case "Artiste":
+        //reactivateDiagonalInstantEffect(row, col);
+        break;
+      case "Tour":
+        coverAllyWithTower(row, col);
+        break;
+      case "Magicienne":
+        retrieveAllyTile(row, col);
         break;
     }
   }
@@ -192,7 +249,7 @@ class LaLogique {
     for (var dir in directions) {
       int newRow = row + dir[0];
       int newCol = col + dir[1];
-      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null) {
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null&& board[newRow][newCol]!.isImmune == false) {
         Tile tile = board[newRow][newCol]!;
         board[newRow][newCol] = Tile(
           name: tile.name,
@@ -210,7 +267,7 @@ class LaLogique {
     for (var dir in directions) {
       int newRow = row + dir[0];
       int newCol = col + dir[1];
-      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3&& board[newRow][newCol]!.isImmune == false) {
         Tile? tile = board[newRow][newCol];
         if (tile != null) {
           board[newRow][newCol] = Tile(
@@ -260,7 +317,7 @@ class LaLogique {
     for (var dir in directions) {
       int newRow = row + dir[0];
       int newCol = col + dir[1];
-      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null) {
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null && board[newRow][newCol]!.isImmune == false) {
         positions.add(Point(newRow, newCol));
         tiles.add(board[newRow][newCol]!);
       }
@@ -333,6 +390,374 @@ class LaLogique {
     }
   }
 
+  void promptSingleTileRotation(int row, int col, BuildContext context) {
+    List<List<int>> directions = [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1],         [0, 1],
+      [1, -1], [1, 0], [1, 1]
+    ];
+
+    List<Point<int>> positions = [];
+    List<Tile> tiles = [];
+
+    for (var dir in directions) {
+      int newRow = row + dir[0];
+      int newCol = col + dir[1];
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null && board[newRow][newCol]!.isImmune == false) {
+        positions.add(Point(newRow, newCol));
+        tiles.add(board[newRow][newCol]!);
+      }
+    }
+
+    if (positions.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Choisissez une tuile à pivoter"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(tiles.length, (index) {
+                return ElevatedButton(
+                  onPressed: () {
+                    rotateSingleTile(positions[index].x, positions[index].y);
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(tiles[index].name),
+                );
+              }),
+            ),
+          );
+        },
+      );
+    }
+  }
+
+  void rotateSingleTile(int row, int col) {
+    if (board[row][col] != null) {
+      Tile tile = board[row][col]!;
+      board[row][col] = Tile(
+        name: tile.name,
+        type: tile.type == TileType.Royalty ? TileType.Religion : TileType.Royalty,
+        icon: tile.icon,
+        rotation: pi,
+      );
+    }
+    onStateChange();
+  }
+
+  void promptDestroyOrthogonalTile(int row, int col, BuildContext context) {
+    List<List<int>> directions = [
+      [-1, 0], [1, 0], [0, -1], [0, 1]
+    ];
+
+    List<Point<int>> positions = [];
+    List<Tile> tiles = [];
+
+    for (var dir in directions) {
+      int newRow = row + dir[0];
+      int newCol = col + dir[1];
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null && board[newRow][newCol]!.isImmune == false) {
+        positions.add(Point(newRow, newCol));
+        tiles.add(board[newRow][newCol]!);
+      }
+    }
+
+    if (positions.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Choisissez une tuile à détruire"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(tiles.length, (index) {
+                return ElevatedButton(
+                  onPressed: () {
+                    board[positions[index].x][positions[index].y] = null;
+                    Navigator.of(context).pop();
+                    onStateChange();
+                  },
+                  child: Text(tiles[index].name),
+                );
+              }),
+            ),
+          );
+        },
+      );
+    }
+  }
+
+  // ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+  void promptDestroyDiagonalTile(int row, int col, BuildContext context) {
+    List<List<int>> directions = [
+      [-1, -1], [-1, 1], [1, -1], [1, 1]
+    ];
+    destroyTileFromDirections(row, col, directions, context);
+  }
+
+  void promptBanishOrthogonalTile(int row, int col, BuildContext context) {
+    List<List<int>> directions = [
+      [-1, 0], [1, 0], [0, -1], [0, 1]
+    ];
+    destroyTileFromDirections(row, col, directions, context);
+  }
+
+  void destroyTileFromDirections(int row, int col, List<List<int>> directions, BuildContext context) {
+    List<Point<int>> positions = [];
+    List<Tile> tiles = [];
+    for (var dir in directions) {
+      int newRow = row + dir[0];
+      int newCol = col + dir[1];
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null && board[newRow][newCol]!.isImmune == false) {
+        positions.add(Point(newRow, newCol));
+        tiles.add(board[newRow][newCol]!);
+      }
+    }
+    if (positions.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Choisissez une tuile à affecter"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(tiles.length, (index) {
+                return ElevatedButton(
+                  onPressed: () {
+                    board[positions[index].x][positions[index].y] = null;
+                    Navigator.of(context).pop();
+                    onStateChange();
+                  },
+                  child: Text(tiles[index].name),
+                );
+              }),
+            ),
+          );
+        },
+      );
+    }
+  }
+
+  void moveNeutralTileToPlayerZone() {
+    if (selectedGrayTiles.isNotEmpty) {
+      Tile tile = selectedGrayTiles.removeLast();
+      if (currentPlayer == TileType.Royalty) {
+        availableRedTiles.add(tile);
+      } else {
+        availableBlueTiles.add(tile);
+      }
+      onStateChange();
+    }
+  }
+
+  // void cancelInstantEffects(int row, int col) {
+  //   List<List<int>> directions = [
+  //     [-1, 0], [1, 0], [0, -1], [0, 1]
+  //   ];
+  //   for (var dir in directions) {
+  //     int newRow = row + dir[0];
+  //     int newCol = col + dir[1];
+  //     if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null) {
+  //       board[newRow][newCol]!.isImmune = false;
+  //     }
+  //   }
+  //   onStateChange();
+  // }
+
+  void reactivateInstantEffect(int row, int col) {
+    List<List<int>> directions = [
+      [-1, 0], [1, 0], [0, -1], [0, 1]
+    ];
+    for (var dir in directions) {
+      int newRow = row + dir[0];
+      int newCol = col + dir[1];
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null) {
+        applyTileEffect(newRow, newCol, board[newRow][newCol]!, BuildContext as BuildContext, currentPlayer == TileType.Religion);
+      }
+    }
+    onStateChange();
+  }
+
+  void grantShieldToAdjacent(int row, int col) {
+    List<List<int>> directions = [
+      [0, -1], [0, 1]
+    ];
+    for (var dir in directions) {
+      int newRow = row + dir[0];
+      int newCol = col + dir[1];
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null) {
+        board[newRow][newCol]!.isImmune = true;
+      }
+    }
+    onStateChange();
+  }
+
+  void banishOpponentTile(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Choisissez une tuile à bannir"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(board.length, (row) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(board[row].length, (col) {
+                  Tile? tile = board[row][col];
+                  if (tile != null && tile.type != currentPlayer) {
+                    return ElevatedButton(
+                      onPressed: () {
+                        board[row][col] = Tile(
+                          name: "Banni",
+                          type: tile.type,
+                          icon: Icons.close,
+                          rotation: tile.rotation,
+                        );
+                        onStateChange();
+                        Future.delayed(Duration(seconds: 1), () {
+                          board[row][col] = null;
+                          onStateChange();
+                        });
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(tile.name),
+                    );
+                  }
+                  return SizedBox.shrink();
+                }),
+              );
+            }),
+          ),
+        );
+      },
+    );
+  }
+
+  void moveRoyaltyTile(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Choisissez une tuile à déplacer"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(board.length, (row) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(board[row].length, (col) {
+                  Tile? tile = board[row][col];
+                  if (tile != null && tile.type == TileType.Royalty) {
+                    return ElevatedButton(
+                      onPressed: () {
+                        board[row][col] = null;
+                        onStateChange();
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(tile.name),
+                    );
+                  }
+                  return SizedBox.shrink();
+                }),
+              );
+            }),
+          ),
+        );
+      },
+    );
+  }
+
+  void rotateThreeAdjacentTiles(int row, int col) {
+    List<List<int>> directions = [
+      [-1, 0], [-1, -1], [-1, 1]
+    ];
+    for (var dir in directions) {
+      int newRow = row + dir[0];
+      int newCol = col + dir[1];
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null  && board[newRow][newCol]!.isImmune == false) {
+        board[newRow][newCol]!.rotation += pi;
+      }
+    }
+    onStateChange();
+  }
+
+  void retrieveDiscardedTile() {
+    if (discardedTiles.isNotEmpty) {
+      Tile tile = discardedTiles.removeLast();
+      if (currentPlayer == TileType.Royalty) {
+        availableRedTiles.add(tile);
+      } else {
+        availableBlueTiles.add(tile);
+      }
+      onStateChange();
+    }
+  }
+
+
+  //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  void destroyShieldedTile(int row, int col, BuildContext context) {
+    List<List<int>> directions = [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1],         [0, 1],
+      [1, -1], [1, 0], [1, 1]
+    ];
+    destroyTileFromDirections(row, col, directions, context);
+  }
+
+  void checkFaucheuseEndGame() {
+    if (availableBlueTiles.contains(Tile(name: "Faucheuse", type: TileType.Neutral, icon: Icons.hourglass_empty, rotation: 0)) ||
+        availableRedTiles.contains(Tile(name: "Faucheuse", type: TileType.Neutral, icon: Icons.hourglass_empty, rotation: 0))) {
+      isGameOver = true;
+    }
+  }
+
+  // void cancelDiagonalInstantEffects(int row, int col) {
+  //   List<List<int>> directions = [
+  //     [-1, -1], [-1, 1],
+  //     [1, -1], [1, 1]
+  //   ];
+  //   cancelInstantEffectsFromDirections(row, col, directions);
+  // }
+
+  void banishDiagonalTile(int row, int col, BuildContext context) {
+    List<List<int>> directions = [
+      [-1, -1], [-1, 1],
+      [1, -1], [1, 1]
+    ];
+    destroyTileFromDirections(row, col, directions, context);
+  }
+
+  // void reactivateDiagonalInstantEffect(int row, int col) {
+  //   List<List<int>> directions = [
+  //     [-1, -1], [-1, 1],
+  //     [1, -1], [1, 1]
+  //   ];
+  //   reactivateInstantEffectFromDirections(row, col, directions);
+  // }
+
+  void coverAllyWithTower(int row, int col) {
+    if (board[row][col] != null) {
+      board[row][col]!.isImmune = true;
+    }
+    onStateChange();
+  }
+
+  void retrieveAllyTile(int row, int col) {
+    if (board[row][col] != null && board[row][col]!.type != currentPlayer) {
+      if (currentPlayer == TileType.Royalty) {
+        availableRedTiles.add(board[row][col]!);
+      } else {
+        availableBlueTiles.add(board[row][col]!);
+      }
+      board[row][col] = null;
+      onStateChange();
+    }
+  }
+
+  //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
   void destroyAdjacentTile(int row, int col) {
@@ -340,22 +765,8 @@ class LaLogique {
     for (var dir in directions) {
       int newRow = row + dir[0];
       int newCol = col + dir[1];
-      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
+      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol]!.isImmune == false) {
         board[newRow][newCol] = null;
-      }
-    }
-  }
-
-  void destroyShieldedTile(int row, int col) {
-    List<List<int>> directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    for (var dir in directions) {
-      int newRow = row + dir[0];
-      int newCol = col + dir[1];
-      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
-        Tile? tile = board[newRow][newCol];
-        if (tile != null && tile.name != "Tour") {
-          board[newRow][newCol] = null;
-        }
       }
     }
   }
