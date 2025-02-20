@@ -132,16 +132,16 @@ class LaLogique {
         moveNeutralTileToPlayerZone();
         break;
       case "Assassin":
-        banishOpponentTile(context);
+        banishOpponentTile(context); // Fais le contraire de ce qu'on lui demainde (la tuile doit être dans zone de jeu de l'adversaire et non sur la grille
         break;
       case "Fée":
-        moveRoyaltyTile(context);
+        moveRoyaltyTile(context); // Le déplacement n'est pas bien effectué, il fait disparaître la tuile sélection au lieu de le déplacer ailleurs.
         break;
       case "Voyante":
-        rotateThreeAdjacentTiles(row, col);
+        rotateThreeAdjacentTiles(row, col); // Okay
         break;
       case "Chaman":
-        //cancelInstantEffects(row, col);
+        cancelInstantEffects(row, col);
         break;
       case "Samuraï":
         promptBanishOrthogonalTile(row, col, context);
@@ -553,19 +553,24 @@ class LaLogique {
     }
   }
 
-  // void cancelInstantEffects(int row, int col) {
-  //   List<List<int>> directions = [
-  //     [-1, 0], [1, 0], [0, -1], [0, 1]
-  //   ];
-  //   for (var dir in directions) {
-  //     int newRow = row + dir[0];
-  //     int newCol = col + dir[1];
-  //     if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null) {
-  //       board[newRow][newCol]!.isImmune = false;
-  //     }
-  //   }
-  //   onStateChange();
-  // }
+  void cancelInstantEffects(int row, int col) {
+    List<List<int>> directions = [
+      [-1, 0], [1, 0], [0, -1], [0, 1]
+    ];
+
+    for (var dir in directions) {
+      int newRow = row + dir[0];
+      int newCol = col + dir[1];
+
+      if (newRow >= 0 && newRow < board.length && newCol >= 0 && newCol < board[0].length && board[newRow][newCol] != null) {
+        board[newRow][newCol]!.effectIsActivated = false; // Désactiver l'effet
+      }
+    }
+
+    onStateChange(); // Mettre à jour l'interface
+  }
+
+
 
   void reactivateInstantEffect(int row, int col) {
     List<List<int>> directions = [
@@ -672,15 +677,25 @@ class LaLogique {
 
   void rotateThreeAdjacentTiles(int row, int col) {
     List<List<int>> directions = [
-      [-1, 0], [-1, -1], [-1, 1]
+      [-1, 0],  // Tuile au-dessus (orthogonale)
+      [-1, -1], // Tuile en haut à gauche (diagonale)
+      [-1, 1]   // Tuile en haut à droite (diagonale)
     ];
+
     for (var dir in directions) {
       int newRow = row + dir[0];
       int newCol = col + dir[1];
-      if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 && board[newRow][newCol] != null  && board[newRow][newCol]!.isImmune == false) {
-        board[newRow][newCol]!.rotation += pi;
+
+      if (newRow >= 0 && newRow < board.length && newCol >= 0 && newCol < board[0].length && board[newRow][newCol] != null) {
+        board[newRow][newCol] = Tile(
+          name: board[newRow][newCol]!.name,
+          type: board[newRow][newCol]?.type == TileType.Royalty ? TileType.Religion : TileType.Royalty,
+          icon: board[newRow][newCol]!.icon,
+          rotation: (board[newRow][newCol]!.rotation + pi) % (2 * pi),
+        );
       }
     }
+
     onStateChange();
   }
 

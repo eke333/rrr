@@ -28,7 +28,7 @@ class _BoardState extends State<Board> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(3, (col) {
             return DragTarget<Tile>(
-              onAccept: (tile) => setState(() => gameLogic.onTileDropped(row, col, tile, context)),
+              onAcceptWithDetails: (tile) => setState(() => gameLogic.onTileDropped(row, col, tile as Tile, context)),
               builder: (context, candidateData, rejectedData) {
                 return Container(
                   width: Constants.screenWidth(context) * 0.18,

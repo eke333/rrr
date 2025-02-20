@@ -55,6 +55,7 @@ class _BuildTileState extends State<BuildTile> {
             widget.tile.name,
             textAlign: TextAlign.center,
             style: TextStyle(
+              color: widget.tile.textColor,
               fontSize: Constants.screenWidth(context) * 0.024,
               fontWeight: FontWeight.bold,
             ),
